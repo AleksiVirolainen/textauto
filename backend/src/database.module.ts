@@ -1,27 +1,17 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule, TypeOrmModuleOptions } from "@nestjs/typeorm";
-import { mkdirSync } from "fs";
-import { join } from "path";
 
 function buildOptions(): TypeOrmModuleOptions {
   const databaseUrl = process.env.DATABASE_URL;
 
-  if (databaseUrl) {
-    return {
-      type: "postgres",
-      url: databaseUrl,
-      ssl: { rejectUnauthorized: false },
-      autoLoadEntities: true,
-      synchronize: true
-    };
+  if (!databaseUrl) {
+    throw new Error("DATABASE_URL is required. Set it to your PostgreSQL connection string.");
   }
 
-  const dataDir = join(process.cwd(), "data");
-  mkdirSync(dataDir, { recursive: true });
-
   return {
-    type: "better-sqlite3",
-    database: join(dataDir, "local.sqlite"),
+    type: "postgres",
+    url: databaseUrl,
+    ssl: { rejectUnauthorized: false },
     autoLoadEntities: true,
     synchronize: true
   };
