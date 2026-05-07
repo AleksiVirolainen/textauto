@@ -5,13 +5,13 @@ export class CustomerEntity {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ name: "customer_code", unique: true })
+  @Column({ name: "customer_code", type: "varchar", length: 64, unique: true })
   customerCode!: string;
 
-  @Column()
+  @Column({ type: "varchar", length: 128 })
   name!: string;
 
-  @Column({ name: "contact_phone", nullable: true })
+  @Column({ name: "contact_phone", type: "varchar", length: 32, nullable: true })
   contactPhone?: string | null;
 
   @CreateDateColumn({ name: "created_at" })
