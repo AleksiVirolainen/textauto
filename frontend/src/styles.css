@@ -20,6 +20,37 @@ body {
   color: #fff;
   padding-top: 0;
   border-right: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar .el-menu {
+  flex: 1;
+}
+
+.sidebar-balance {
+  padding: 14px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: #1b2333;
+}
+
+.sidebar-balance-label {
+  font-size: 12px;
+  color: #8b95ad;
+  margin-bottom: 4px;
+}
+
+.sidebar-balance-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #58c4ff;
+}
+
+.sidebar-balance-unit {
+  font-size: 12px;
+  font-weight: 500;
+  color: #8b95ad;
+  margin-left: 4px;
 }
 
 .sidebar-title {

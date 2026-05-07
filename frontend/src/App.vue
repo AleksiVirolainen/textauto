@@ -8,6 +8,17 @@ const router = useRouter();
 const showLayout = computed(() => !route.meta.public);
 const username = computed(() => auth.state.user?.username || "用户");
 
+const balanceByUser = {
+  "15957736312": 350000
+};
+const defaultBalance = 0;
+
+const balance = computed(() => {
+  const u = auth.state.user?.username;
+  return balanceByUser[u] ?? defaultBalance;
+});
+const balanceText = computed(() => balance.value.toLocaleString());
+
 function logout() {
   auth.clear();
   router.replace("/login");
@@ -60,6 +71,14 @@ function logout() {
           <el-menu-item index="/security">信息安全策略</el-menu-item>
         </el-sub-menu>
       </el-menu>
+
+      <div class="sidebar-balance">
+        <div class="sidebar-balance-label">短信余额</div>
+        <div class="sidebar-balance-value">
+          {{ balanceText }}
+          <span class="sidebar-balance-unit">条</span>
+        </div>
+      </div>
     </aside>
     <main class="main">
       <header class="topbar">
