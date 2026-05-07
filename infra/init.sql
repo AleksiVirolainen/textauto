@@ -1,0 +1,79 @@
+CREATE TABLE IF NOT EXISTS users (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  username VARCHAR(64) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  role VARCHAR(32) NOT NULL DEFAULT 'operator',
+  status TINYINT NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS customers (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  customer_code VARCHAR(64) NOT NULL UNIQUE,
+  name VARCHAR(128) NOT NULL,
+  contact_phone VARCHAR(32) NULL,
+  status TINYINT NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS message_templates (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(128) NOT NULL,
+  channel VARCHAR(32) NOT NULL DEFAULT 'sms',
+  content TEXT NOT NULL,
+  created_by BIGINT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS message_tasks (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  task_name VARCHAR(128) NOT NULL,
+  customer_id BIGINT NOT NULL,
+  channel VARCHAR(32) NOT NULL DEFAULT 'sms',
+  content TEXT NOT NULL,
+  schedule_time DATETIME NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'pending',
+  total_count INT NOT NULL DEFAULT 0,
+  success_count INT NOT NULL DEFAULT 0,
+  fail_count INT NOT NULL DEFAULT 0,
+  created_by BIGINT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_customer_id (customer_id),
+  INDEX idx_status (status)
+);
+
+CREATE TABLE IF NOT EXISTS message_recipients (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  task_id BIGINT NOT NULL,
+  phone VARCHAR(32) NOT NULL,
+  payload JSON NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'queued',
+  retry_count INT NOT NULL DEFAULT 0,
+  provider_message_id VARCHAR(128) NULL,
+  fail_reason VARCHAR(255) NULL,
+  sent_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_task_id (task_id),
+  INDEX idx_status (status),
+  INDEX idx_phone (phone)
+);
+
+CREATE TABLE IF NOT EXISTS message_logs (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  task_id BIGINT NOT NULL,
+  recipient_id BIGINT NOT NULL,
+  event_type VARCHAR(64) NOT NULL,
+  event_payload JSON NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_task_id (task_id),
+  INDEX idx_recipient_id (recipient_id)
+);
+
+INSERT INTO users (username, password_hash, role)
+VALUES ('admin', '$2b$10$mockhashreplaceinrealproject', 'admin')
+ON DUPLICATE KEY UPDATE username = username;

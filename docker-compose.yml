@@ -1,0 +1,31 @@
+version: "3.9"
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: messenger-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: messenger
+      MYSQL_USER: messenger
+      MYSQL_PASSWORD: messenger123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./infra/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    command: ["--default-authentication-plugin=mysql_native_password"]
+
+  redis:
+    image: redis:7-alpine
+    container_name: messenger-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  mysql_data:
+  redis_data:
