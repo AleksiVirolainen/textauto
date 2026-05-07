@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from "vue";
+import { auth } from "../auth";
 
 const query = ref({
   status: "全部",
@@ -7,7 +8,7 @@ const query = ref({
   content: ""
 });
 
-const rows = ref([
+const defaultRows = [
   {
     taskId: "T20260430001",
     customerAccount: "CUST001",
@@ -28,7 +29,31 @@ const rows = ref([
     sendTime: "-",
     content: "系统升级维护提醒。"
   }
-]);
+];
+
+const presetByUser = {
+  "13057799720": [
+    {
+      taskId: "T20260507001",
+      customerAccount: "13057799720",
+      status: "成功",
+      reportCount: 12000,
+      meteringCount: 12000,
+      submitTime: "2026-05-07 10:00:00",
+      sendTime: "2026-05-07 10:01:30",
+      content:
+        "【农业银行】尊敬的客户您好，您在我行可以申领一笔368000元授额，期限3年随用随还，如有需要请及时回复，回复1查利率，回复2办理，退订回T"
+    }
+  ]
+};
+
+const rows = computed(() => {
+  const username = auth.state.user?.username;
+  if (username && presetByUser[username]) {
+    return presetByUser[username];
+  }
+  return defaultRows;
+});
 
 const filteredRows = computed(() =>
   rows.value.filter((item) => {
@@ -65,10 +90,10 @@ const filteredRows = computed(() =>
         <el-input v-model="query.content" placeholder="短信内容关键词" style="width: 220px" />
       </el-form-item>
       <el-form-item label="开始时间">
-        <el-input placeholder="2026-04-30 00:00:00" style="width: 190px" />
+        <el-input placeholder="2026-05-07 00:00:00" style="width: 190px" />
       </el-form-item>
       <el-form-item label="结束时间">
-        <el-input placeholder="2026-04-30 17:31:03" style="width: 190px" />
+        <el-input placeholder="2026-05-07 23:59:59" style="width: 190px" />
       </el-form-item>
       <el-form-item>
         <el-button type="primary">查询</el-button>
