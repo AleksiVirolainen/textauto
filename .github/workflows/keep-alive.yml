@@ -1,0 +1,23 @@
+name: Keep Render API alive
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping textauto-api
+        run: |
+          for i in 1 2 3; do
+            if curl -fsS -o /dev/null --max-time 60 https://textauto-api.onrender.com/health; then
+              echo "ping ok"
+              exit 0
+            fi
+            echo "retry $i"
+            sleep 10
+          done
+          echo "ping failed"
+          exit 1
