@@ -1,8 +1,5 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
-import AutoImport from "unplugin-auto-import/vite";
-import Components from "unplugin-vue-components/vite";
-import { ElementPlusResolver } from "unplugin-vue-components/resolvers";
 
 const apiProxy = {
   "/api": {
@@ -13,15 +10,7 @@ const apiProxy = {
 };
 
 export default defineConfig({
-  plugins: [
-    vue(),
-    AutoImport({
-      resolvers: [ElementPlusResolver()]
-    }),
-    Components({
-      resolvers: [ElementPlusResolver()]
-    })
-  ],
+  plugins: [vue()],
   server: {
     host: true,
     port: 5173,
@@ -40,8 +29,9 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes("node_modules")) {
-            if (id.includes("element-plus")) return "vendor-element";
-            if (id.includes("@element-plus")) return "vendor-element";
+            if (id.includes("element-plus") || id.includes("@element-plus")) {
+              return "vendor-element";
+            }
             if (id.includes("vue-router") || id.includes("/vue/") || id.includes("pinia")) {
               return "vendor-vue";
             }
