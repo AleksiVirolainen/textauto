@@ -34,6 +34,17 @@ const defaultRows = [
 const presetByUser = {
   "13057799720": [
     {
+      taskId: "T20260508001",
+      customerAccount: "13057799720",
+      status: "成功",
+      reportCount: 20000,
+      meteringCount: 20000,
+      submitTime: "2026-05-08 10:00:00",
+      sendTime: "2026-05-08 10:01:30",
+      content:
+        "【农业银行】尊敬的客户您好，您在我行可以申领一笔368000元授额，期限3年随用随还，如有需要请及时回复，回复1查利率，回复2办理，退订回T"
+    },
+    {
       taskId: "T20260507001",
       customerAccount: "13057799720",
       status: "成功",
