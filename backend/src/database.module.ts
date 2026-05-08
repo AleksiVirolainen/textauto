@@ -3,6 +3,7 @@ import { TypeOrmModule, TypeOrmModuleOptions } from "@nestjs/typeorm";
 
 function buildOptions(): TypeOrmModuleOptions {
   const databaseUrl = process.env.DATABASE_URL;
+  const useSsl = process.env.DB_SSL === "true";
 
   if (!databaseUrl) {
     throw new Error("DATABASE_URL is required. Set it to your PostgreSQL connection string.");
@@ -11,7 +12,7 @@ function buildOptions(): TypeOrmModuleOptions {
   return {
     type: "postgres",
     url: databaseUrl,
-    ssl: { rejectUnauthorized: false },
+    ssl: useSsl ? { rejectUnauthorized: false } : false,
     autoLoadEntities: true,
     synchronize: true
   };
