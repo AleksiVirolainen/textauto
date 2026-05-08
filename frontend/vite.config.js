@@ -1,7 +1,9 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
+import AutoImport from "unplugin-auto-import/vite";
+import Components from "unplugin-vue-components/vite";
+import { ElementPlusResolver } from "unplugin-vue-components/resolvers";
 
-/** 浏览器同源走 /api，由 Vite 转发到本机 Nest，外链分享只需穿透 5173 一个端口 */
 const apiProxy = {
   "/api": {
     target: "http://127.0.0.1:3000",
@@ -11,11 +13,18 @@ const apiProxy = {
 };
 
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [
+    vue(),
+    AutoImport({
+      resolvers: [ElementPlusResolver()]
+    }),
+    Components({
+      resolvers: [ElementPlusResolver()]
+    })
+  ],
   server: {
     host: true,
     port: 5173,
-    // 允许经 ngrok 等穿透访问（否则可能出现 GET / → 403）
     allowedHosts: [".ngrok-free.dev", ".ngrok-free.app", ".ngrok.io"],
     proxy: apiProxy
   },
@@ -23,5 +32,24 @@ export default defineConfig({
     host: true,
     port: 4173,
     proxy: apiProxy
+  },
+  build: {
+    target: "es2018",
+    cssCodeSplit: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            if (id.includes("element-plus")) return "vendor-element";
+            if (id.includes("@element-plus")) return "vendor-element";
+            if (id.includes("vue-router") || id.includes("/vue/") || id.includes("pinia")) {
+              return "vendor-vue";
+            }
+            if (id.includes("axios")) return "vendor-axios";
+            return "vendor";
+          }
+        }
+      }
+    }
   }
 });
