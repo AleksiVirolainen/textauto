@@ -10,7 +10,7 @@ const username = computed(() => auth.state.user?.username || "用户");
 
 const balanceByUser = {
   "13057799720": 89021,
-  "15957736312": 335234
+  "15957736312": 319234
 };
 const defaultBalance = 0;
 
