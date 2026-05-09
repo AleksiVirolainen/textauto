@@ -1,24 +1,41 @@
 <script setup>
-import { computed } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { auth } from "./auth";
+import { api } from "./api";
 
 const route = useRoute();
 const router = useRouter();
 const showLayout = computed(() => !route.meta.public);
 const username = computed(() => auth.state.user?.username || "用户");
+const isAdmin = computed(() => auth.state.user?.role === "admin");
 
-const balanceByUser = {
-  "13057799720": 89021,
-  "15957736312": 319234
-};
-const defaultBalance = 0;
+const balance = ref(0);
 
-const balance = computed(() => {
+async function loadBalance() {
   const u = auth.state.user?.username;
-  return balanceByUser[u] ?? defaultBalance;
-});
+  if (!u) {
+    balance.value = 0;
+    return;
+  }
+  try {
+    const data = await api.getBalance(u);
+    balance.value = Number(data?.balance ?? 0);
+  } catch {
+    balance.value = 0;
+  }
+}
+
 const balanceText = computed(() => balance.value.toLocaleString());
+
+onMounted(loadBalance);
+watch(() => auth.state.user?.username, loadBalance);
+watch(
+  () => route.fullPath,
+  () => {
+    if (showLayout.value) loadBalance();
+  }
+);
 
 function logout() {
   auth.clear();
@@ -70,6 +87,7 @@ function logout() {
           </template>
           <el-menu-item index="/system">系统管理</el-menu-item>
           <el-menu-item index="/security">信息安全策略</el-menu-item>
+          <el-menu-item v-if="isAdmin" index="/admin">管理后台</el-menu-item>
         </el-sub-menu>
       </el-menu>
 

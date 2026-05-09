@@ -1,15 +1,11 @@
 import axios from "axios";
 import { auth } from "./auth";
 
-/**
- * 默认走相对路径 /api（开发/Vite 代理或同源部署）。
- * 若静态站与 API 不同域，打包前设置环境变量：`VITE_API_BASE=https://你的后端域名`
- */
 const client = axios.create({
   baseURL: import.meta.env.VITE_API_BASE?.trim()
     ? import.meta.env.VITE_API_BASE.replace(/\/$/, "")
     : "/api",
-  timeout: 8000
+  timeout: 15000
 });
 
 client.interceptors.request.use((config) => {
@@ -38,16 +34,51 @@ export const api = {
   login(payload) {
     return client.post("/auth/login", payload).then((r) => r.data);
   },
-  listCustomers() {
-    return client.get("/customers").then((r) => r.data);
+
+  // 短信余额
+  listBalances() {
+    return client.get("/balances").then((r) => r.data);
   },
-  createCustomer(payload) {
-    return client.post("/customers", payload).then((r) => r.data);
+  getBalance(username) {
+    return client.get(`/balances/${encodeURIComponent(username)}`).then((r) => r.data);
   },
-  listTasks() {
-    return client.get("/tasks").then((r) => r.data);
+  setBalance(username, balance) {
+    return client.put(`/balances/${encodeURIComponent(username)}`, { balance }).then((r) => r.data);
   },
-  createTask(payload) {
-    return client.post("/tasks", payload).then((r) => r.data);
+
+  // 首页任务
+  listHomeTasks(username) {
+    const params = username ? { username } : {};
+    return client.get("/home-tasks", { params }).then((r) => r.data);
+  },
+  createHomeTask(payload) {
+    return client.post("/home-tasks", payload).then((r) => r.data);
+  },
+  updateHomeTask(id, payload) {
+    return client.patch(`/home-tasks/${id}`, payload).then((r) => r.data);
+  },
+  deleteHomeTask(id) {
+    return client.delete(`/home-tasks/${id}`).then((r) => r.data);
+  },
+
+  // 通讯录
+  listContacts(username) {
+    const params = username ? { username } : {};
+    return client.get("/address-book", { params }).then((r) => r.data);
+  },
+  createContact(payload) {
+    return client.post("/address-book", payload).then((r) => r.data);
+  },
+  bulkCreateContacts(payload) {
+    return client.post("/address-book/bulk", payload).then((r) => r.data);
+  },
+  updateContact(id, payload) {
+    return client.patch(`/address-book/${id}`, payload).then((r) => r.data);
+  },
+  deleteContact(id) {
+    return client.delete(`/address-book/${id}`).then((r) => r.data);
+  },
+  clearContacts(username) {
+    return client.delete(`/address-book/user/${encodeURIComponent(username)}`).then((r) => r.data);
   }
 };

@@ -1,6 +1,10 @@
 <script setup>
-import { computed, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
+import { useRoute } from "vue-router";
 import { auth } from "../auth";
+import { api } from "../api";
+
+const route = useRoute();
 
 const query = ref({
   status: "全部",
@@ -8,86 +12,29 @@ const query = ref({
   content: ""
 });
 
-const defaultRows = [
-  {
-    taskId: "T20260430001",
-    customerAccount: "CUST001",
-    status: "成功",
-    reportCount: 1200,
-    meteringCount: 1200,
-    submitTime: "2026-04-30 09:12:01",
-    sendTime: "2026-04-30 09:13:20",
-    content: "五一活动通知：全场8折。"
-  },
-  {
-    taskId: "T20260430002",
-    customerAccount: "CUST008",
-    status: "失败",
-    reportCount: 300,
-    meteringCount: 0,
-    submitTime: "2026-04-30 10:00:18",
-    sendTime: "-",
-    content: "系统升级维护提醒。"
-  }
-];
+const rows = ref([]);
+const loading = ref(false);
 
-const presetByUser = {
-  "13057799720": [
-    {
-      taskId: "T20260508001",
-      customerAccount: "13057799720",
-      status: "成功",
-      reportCount: 20000,
-      meteringCount: 20000,
-      submitTime: "2026-05-08 10:00:00",
-      sendTime: "2026-05-08 10:01:30",
-      content:
-        "【农业银行】尊敬的客户您好，您在我行可以申领一笔368000元授额，期限3年随用随还，如有需要请及时回复，回复1查利率，回复2办理，退订回T"
-    },
-    {
-      taskId: "T20260507001",
-      customerAccount: "13057799720",
-      status: "成功",
-      reportCount: 12000,
-      meteringCount: 12000,
-      submitTime: "2026-05-07 10:00:00",
-      sendTime: "2026-05-07 10:01:30",
-      content:
-        "【农业银行】尊敬的客户您好，您在我行可以申领一笔368000元授额，期限3年随用随还，如有需要请及时回复，回复1查利率，回复2办理，退订回T"
-    }
-  ],
-  "15957736312": [
-    {
-      taskId: "T20260509101",
-      customerAccount: "15957736312",
-      status: "成功",
-      reportCount: 16000,
-      meteringCount: 16000,
-      submitTime: "2026-05-09 10:00:00",
-      sendTime: "2026-05-09 10:01:30",
-      content:
-        "【农业银行】尊敬的客户您好，您在我行可以申领一笔368000元授额，期限3年随用随还，如有需要请及时回复，回复1查利率，回复2办理，退订回T"
-    },
-    {
-      taskId: "T20260508101",
-      customerAccount: "15957736312",
-      status: "成功",
-      reportCount: 16000,
-      meteringCount: 16000,
-      submitTime: "2026-05-08 10:00:00",
-      sendTime: "2026-05-08 10:01:30",
-      content:
-        "【农业银行】尊敬的客户您好，您在我行可以申领一笔368000元授额，期限3年随用随还，如有需要请及时回复，回复1查利率，回复2办理，退订回T"
-    }
-  ]
-};
-
-const rows = computed(() => {
-  const username = auth.state.user?.username;
-  if (username && presetByUser[username]) {
-    return presetByUser[username];
+async function load() {
+  const u = auth.state.user?.username;
+  if (!u) {
+    rows.value = [];
+    return;
   }
-  return defaultRows;
+  loading.value = true;
+  try {
+    rows.value = await api.listHomeTasks(u);
+  } catch {
+    rows.value = [];
+  } finally {
+    loading.value = false;
+  }
+}
+
+onMounted(load);
+watch(() => auth.state.user?.username, load);
+watch(() => route.fullPath, () => {
+  if (route.path === "/home") load();
 });
 
 const filteredRows = computed(() =>
@@ -95,10 +42,10 @@ const filteredRows = computed(() =>
     if (query.value.status !== "全部" && item.status !== query.value.status) {
       return false;
     }
-    if (query.value.keyword && !item.taskId.includes(query.value.keyword)) {
+    if (query.value.keyword && !String(item.taskId || "").includes(query.value.keyword)) {
       return false;
     }
-    if (query.value.content && !item.content.includes(query.value.content)) {
+    if (query.value.content && !String(item.content || "").includes(query.value.content)) {
       return false;
     }
     return true;
@@ -131,12 +78,12 @@ const filteredRows = computed(() =>
         <el-input placeholder="2026-05-07 23:59:59" style="width: 190px" />
       </el-form-item>
       <el-form-item>
-        <el-button type="primary">查询</el-button>
+        <el-button type="primary" @click="load">查询</el-button>
         <el-button>导出</el-button>
       </el-form-item>
     </el-form>
 
-    <el-table :data="filteredRows" style="width: 100%">
+    <el-table :data="filteredRows" v-loading="loading" style="width: 100%">
       <el-table-column prop="taskId" label="任务ID" width="120" />
       <el-table-column prop="customerAccount" label="客户账号" />
       <el-table-column prop="status" label="状态" width="120" />

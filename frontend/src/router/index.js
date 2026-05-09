@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
+import AdminPage from "../views/AdminPage.vue";
 import AppCenterPage from "../views/AppCenterPage.vue";
 import ContactsPage from "../views/ContactsPage.vue";
 import CustomersPage from "../views/CustomersPage.vue";
@@ -22,7 +23,8 @@ const routes = [
   { path: "/customers", component: CustomersPage },
   { path: "/contacts", component: ContactsPage },
   { path: "/system", component: SystemPage },
-  { path: "/security", component: SecurityPage }
+  { path: "/security", component: SecurityPage },
+  { path: "/admin", component: AdminPage, meta: { adminOnly: true } }
 ];
 
 const router = createRouter({
@@ -39,6 +41,9 @@ router.beforeEach((to) => {
   }
   if (!auth.isLoggedIn()) {
     return { path: "/login", query: { redirect: to.fullPath } };
+  }
+  if (to.meta.adminOnly && auth.state.user?.role !== "admin") {
+    return { path: "/home" };
   }
   return true;
 });
