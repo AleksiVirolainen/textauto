@@ -11,7 +11,7 @@ import {
   UseInterceptors
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { IsNumber, IsOptional, IsString, Max, Min } from "class-validator";
+import { IsNumber, IsString, Max, Min } from "class-validator";
 import { RevenuesService } from "./revenues.service";
 
 class UpsertPointDto {
