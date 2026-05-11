@@ -2,7 +2,6 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { api } from "../api";
-import RevenueAdminPanel from "../components/RevenueAdminPanel.vue";
 
 const knownAccounts = [
   "13057799720",
@@ -487,11 +486,6 @@ watch(targetUser, refreshAll);
             <el-empty description="暂无联系人" />
           </template>
         </el-table>
-      </el-tab-pane>
-
-      <!-- 营收识别 -->
-      <el-tab-pane label="营收识别" name="revenues">
-        <RevenueAdminPanel :default-point-name="targetUser" />
       </el-tab-pane>
     </el-tabs>
 

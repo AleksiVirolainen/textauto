@@ -103,22 +103,5 @@ export const api = {
   },
   deleteCampaign(id) {
     return client.delete(`/campaigns/${id}`).then((r) => r.data);
-  },
-
-  // 营收识别（二维码 -> 金额 -> 按点位抽成）
-  listRevenuePoints() {
-    return client.get("/revenues/points").then((r) => r.data);
-  },
-  upsertRevenuePoint(pointName, commissionRatePercent) {
-    return client
-      .put(`/revenues/points/${encodeURIComponent(pointName)}`, { commissionRatePercent })
-      .then((r) => r.data);
-  },
-  listRevenueRecords(pointName) {
-    const params = pointName ? { pointName } : {};
-    return client.get("/revenues/records", { params }).then((r) => r.data);
-  },
-  scanRevenue(formData) {
-    return client.post("/revenues/scan", formData).then((r) => r.data);
   }
 };
