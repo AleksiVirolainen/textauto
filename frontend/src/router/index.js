@@ -10,7 +10,6 @@ import SubscriptionsPage from "../views/SubscriptionsPage.vue";
 import SystemPage from "../views/SystemPage.vue";
 import TasksPage from "../views/TasksPage.vue";
 import ValueAddedPage from "../views/ValueAddedPage.vue";
-import RevenueCenterPage from "../views/RevenueCenterPage.vue";
 import { auth } from "../auth";
 
 const routes = [
@@ -23,7 +22,6 @@ const routes = [
   { path: "/app", component: AppCenterPage },
   { path: "/customers", component: CustomersPage },
   { path: "/contacts", component: ContactsPage },
-  { path: "/revenue-center", component: RevenueCenterPage },
   { path: "/system", component: SystemPage },
   { path: "/security", component: SecurityPage },
   { path: "/admin", component: AdminPage, meta: { adminOnly: true } }

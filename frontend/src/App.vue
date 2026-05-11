@@ -79,7 +79,6 @@ function logout() {
           </template>
           <el-menu-item index="/customers">客户管理</el-menu-item>
           <el-menu-item index="/contacts">通讯录</el-menu-item>
-          <el-menu-item index="/revenue-center">营收后台</el-menu-item>
         </el-sub-menu>
         <el-sub-menu index="admin">
           <template #title>
