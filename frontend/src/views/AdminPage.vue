@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { api } from "../api";
 
@@ -198,12 +198,139 @@ async function submitBulk() {
   await refreshContacts();
 }
 
-// ---------------- 切换用户/Tab 时联动刷新 ----------------
-async function refreshAll() {
-  await Promise.all([refreshBalance(), refreshTasks(), refreshContacts()]);
+// ---------------- 投放任务（定时加联系人）----------------
+const campaigns = ref([]);
+const campaignLoading = ref(false);
+const campaignDialog = ref(false);
+const campaignForm = ref(emptyCampaign());
+let campaignTimer = null;
+
+function emptyCampaign() {
+  return {
+    title: "",
+    ratePerHourMin: 2,
+    ratePerHourMax: 3,
+    workHourStart: 9,
+    workHourEnd: 22,
+    defaultGroupName: "农业银行",
+    defaultTags: "1",
+    defaultOp: "",
+    text: ""
+  };
 }
 
-onMounted(refreshAll);
+async function refreshCampaigns() {
+  campaignLoading.value = true;
+  try {
+    campaigns.value = await api.listCampaigns();
+  } finally {
+    campaignLoading.value = false;
+  }
+}
+
+function openCreateCampaign() {
+  campaignForm.value = emptyCampaign();
+  campaignForm.value.defaultOp = todayShort();
+  campaignDialog.value = true;
+}
+
+function todayShort() {
+  const d = new Date();
+  return `${d.getMonth() + 1}.${d.getDate()}`;
+}
+
+const campaignPreview = computed(() => {
+  const lines = campaignForm.value.text.split(/\r?\n/);
+  let n = 0;
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+    const phone = line.split(/[,\t，；; ]+/)[0]?.trim() ?? "";
+    if (/^\d{6,}$/.test(phone)) n += 1;
+  }
+  return n;
+});
+
+const campaignEtaHours = computed(() => {
+  if (campaignPreview.value === 0) return 0;
+  const avgRate = (campaignForm.value.ratePerHourMin + campaignForm.value.ratePerHourMax) / 2;
+  if (avgRate <= 0) return 0;
+  return Math.ceil(campaignPreview.value / avgRate);
+});
+
+async function submitCampaign() {
+  if (campaignPreview.value === 0) {
+    ElMessage.warning("没有解析到任何手机号");
+    return;
+  }
+  if (campaignForm.value.ratePerHourMin > campaignForm.value.ratePerHourMax) {
+    ElMessage.warning("每小时下限不能大于上限");
+    return;
+  }
+  await api.createCampaign({
+    username: targetUser.value,
+    title: campaignForm.value.title,
+    ratePerHourMin: Number(campaignForm.value.ratePerHourMin),
+    ratePerHourMax: Number(campaignForm.value.ratePerHourMax),
+    workHourStart: Number(campaignForm.value.workHourStart),
+    workHourEnd: Number(campaignForm.value.workHourEnd),
+    defaultGroupName: campaignForm.value.defaultGroupName,
+    defaultTags: campaignForm.value.defaultTags,
+    defaultOp: campaignForm.value.defaultOp,
+    text: campaignForm.value.text
+  });
+  ElMessage.success(`已创建投放任务（${campaignPreview.value} 条，预计 ${campaignEtaHours.value} 小时跑完）`);
+  campaignDialog.value = false;
+  await refreshCampaigns();
+}
+
+async function pauseCampaign(row) {
+  await api.pauseCampaign(row.id);
+  await refreshCampaigns();
+}
+async function resumeCampaign(row) {
+  await api.resumeCampaign(row.id);
+  await refreshCampaigns();
+}
+async function cancelCampaign(row) {
+  await ElMessageBox.confirm("取消任务后剩余号码不再投放，确定？", "提示", { type: "warning" });
+  await api.cancelCampaign(row.id);
+  await refreshCampaigns();
+}
+async function deleteCampaign(row) {
+  await ElMessageBox.confirm("删除任务及全部投放记录，确定？", "危险操作", {
+    type: "warning",
+    confirmButtonText: "确定删除"
+  });
+  await api.deleteCampaign(row.id);
+  ElMessage.success("已删除");
+  await refreshCampaigns();
+}
+
+function campaignStatusText(s) {
+  return { running: "进行中", paused: "已暂停", done: "已完成", canceled: "已取消" }[s] || s;
+}
+function campaignStatusType(s) {
+  return { running: "success", paused: "warning", done: "info", canceled: "danger" }[s] || "";
+}
+function formatTime(t) {
+  return t ? new Date(t).toLocaleString() : "-";
+}
+
+// ---------------- 切换用户/Tab 时联动刷新 ----------------
+async function refreshAll() {
+  await Promise.all([refreshBalance(), refreshTasks(), refreshContacts(), refreshCampaigns()]);
+}
+
+onMounted(() => {
+  refreshAll();
+  campaignTimer = setInterval(refreshCampaigns, 30_000);
+});
+
+onBeforeUnmount(() => {
+  if (campaignTimer) clearInterval(campaignTimer);
+});
+
 watch(targetUser, refreshAll);
 </script>
 
@@ -277,6 +404,63 @@ watch(targetUser, refreshAll);
         </el-table>
       </el-tab-pane>
 
+      <!-- 投放任务 -->
+      <el-tab-pane label="投放任务" name="campaigns">
+        <div style="margin-bottom: 12px;">
+          <el-button type="primary" @click="openCreateCampaign">新建投放任务</el-button>
+          <el-button @click="refreshCampaigns">刷新</el-button>
+          <span style="margin-left: 12px; color: #888;">
+            自动按设定的节奏给通讯录加号码（默认 9:00 ~ 22:00 才跑）
+          </span>
+        </div>
+        <el-table :data="campaigns" v-loading="campaignLoading" max-height="600">
+          <el-table-column prop="id" label="#" width="60" />
+          <el-table-column prop="username" label="目标账号" width="130" />
+          <el-table-column prop="title" label="标题" />
+          <el-table-column label="状态" width="100">
+            <template #default="{ row }">
+              <el-tag :type="campaignStatusType(row.status)">
+                {{ campaignStatusText(row.status) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="进度" width="160">
+            <template #default="{ row }">
+              {{ row.insertedCount }} / {{ row.totalCount }}
+              <span v-if="row.failedCount" style="color:#f56c6c;">（失败 {{ row.failedCount }}）</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="速率/小时" width="100">
+            <template #default="{ row }">{{ row.ratePerHourMin }}~{{ row.ratePerHourMax }}</template>
+          </el-table-column>
+          <el-table-column label="工作时段" width="110">
+            <template #default="{ row }">{{ row.workHourStart }}:00 ~ {{ row.workHourEnd }}:00</template>
+          </el-table-column>
+          <el-table-column label="上次投放" width="170">
+            <template #default="{ row }">{{ formatTime(row.lastInsertedAt) }}</template>
+          </el-table-column>
+          <el-table-column label="下次投放" width="170">
+            <template #default="{ row }">{{ formatTime(row.nextScheduledAt) }}</template>
+          </el-table-column>
+          <el-table-column label="操作" width="220" fixed="right">
+            <template #default="{ row }">
+              <el-button v-if="row.status === 'running'" link type="warning" @click="pauseCampaign(row)">暂停</el-button>
+              <el-button v-if="row.status === 'paused'" link type="success" @click="resumeCampaign(row)">继续</el-button>
+              <el-button
+                v-if="['running','paused'].includes(row.status)"
+                link
+                type="danger"
+                @click="cancelCampaign(row)"
+              >取消</el-button>
+              <el-button link type="danger" @click="deleteCampaign(row)">删除</el-button>
+            </template>
+          </el-table-column>
+          <template #empty>
+            <el-empty description="暂无投放任务" />
+          </template>
+        </el-table>
+      </el-tab-pane>
+
       <!-- 通讯录 -->
       <el-tab-pane label="通讯录" name="contacts">
         <div style="margin-bottom: 12px;">
@@ -340,6 +524,70 @@ watch(targetUser, refreshAll);
       <template #footer>
         <el-button @click="taskDialog = false">取消</el-button>
         <el-button type="primary" @click="saveTask">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 创建投放任务对话框 -->
+    <el-dialog v-model="campaignDialog" title="新建定时投放任务" width="760px">
+      <el-form label-position="top">
+        <el-form-item label="目标账号">
+          <el-input :model-value="targetUser" disabled />
+          <div style="font-size:12px;color:#888;">从顶部下拉框选择不同账号</div>
+        </el-form-item>
+        <el-form-item label="任务标题（可选）">
+          <el-input v-model="campaignForm.title" placeholder="如 农行5月批次" />
+        </el-form-item>
+        <el-form-item label="速率（每小时投放条数）">
+          <el-row :gutter="12">
+            <el-col :span="12">
+              <el-input-number v-model="campaignForm.ratePerHourMin" :min="1" :max="60" style="width:100%" />
+              <div style="font-size:12px;color:#888;">最少</div>
+            </el-col>
+            <el-col :span="12">
+              <el-input-number v-model="campaignForm.ratePerHourMax" :min="1" :max="60" style="width:100%" />
+              <div style="font-size:12px;color:#888;">最多</div>
+            </el-col>
+          </el-row>
+        </el-form-item>
+        <el-form-item label="工作时段（24小时制）">
+          <el-row :gutter="12">
+            <el-col :span="12">
+              <el-input-number v-model="campaignForm.workHourStart" :min="0" :max="23" style="width:100%" />
+              <div style="font-size:12px;color:#888;">开始小时</div>
+            </el-col>
+            <el-col :span="12">
+              <el-input-number v-model="campaignForm.workHourEnd" :min="0" :max="23" style="width:100%" />
+              <div style="font-size:12px;color:#888;">结束小时（不含）</div>
+            </el-col>
+          </el-row>
+        </el-form-item>
+        <el-form-item label="分组默认值（行内第3列可覆盖）">
+          <el-input v-model="campaignForm.defaultGroupName" />
+        </el-form-item>
+        <el-form-item label="标签默认值（行内第2列可覆盖）">
+          <el-input v-model="campaignForm.defaultTags" placeholder="1 / 2 / TD" />
+        </el-form-item>
+        <el-form-item label="操作内容默认值（行内第4列可覆盖）">
+          <el-input v-model="campaignForm.defaultOp" placeholder="如 5.11" />
+        </el-form-item>
+        <el-form-item label="粘贴号码（每行一条；列顺序：手机号 / 标签 / 分组 / 操作）">
+          <el-input
+            v-model="campaignForm.text"
+            type="textarea"
+            :rows="10"
+            :placeholder="'13800000001\n13800000002,2\n13800000003,TD,农业银行,5.11'"
+          />
+        </el-form-item>
+      </el-form>
+      <div style="color:#666; font-size:13px;">
+        将创建一个排队任务：共 <b>{{ campaignPreview }}</b> 条，预计
+        <b>{{ campaignEtaHours }}</b> 小时跑完（仅在工作时段计费）。
+      </div>
+      <template #footer>
+        <el-button @click="campaignDialog = false">取消</el-button>
+        <el-button type="primary" :disabled="campaignPreview === 0" @click="submitCampaign">
+          创建任务（{{ campaignPreview }} 条）
+        </el-button>
       </template>
     </el-dialog>
 

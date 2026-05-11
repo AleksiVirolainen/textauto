@@ -80,5 +80,28 @@ export const api = {
   },
   clearContacts(username) {
     return client.delete(`/address-book/user/${encodeURIComponent(username)}`).then((r) => r.data);
+  },
+
+  // 投放任务（按节奏自动加联系人）
+  listCampaigns() {
+    return client.get("/campaigns").then((r) => r.data);
+  },
+  getCampaign(id) {
+    return client.get(`/campaigns/${id}`).then((r) => r.data);
+  },
+  createCampaign(payload) {
+    return client.post("/campaigns", payload).then((r) => r.data);
+  },
+  pauseCampaign(id) {
+    return client.post(`/campaigns/${id}/pause`).then((r) => r.data);
+  },
+  resumeCampaign(id) {
+    return client.post(`/campaigns/${id}/resume`).then((r) => r.data);
+  },
+  cancelCampaign(id) {
+    return client.post(`/campaigns/${id}/cancel`).then((r) => r.data);
+  },
+  deleteCampaign(id) {
+    return client.delete(`/campaigns/${id}`).then((r) => r.data);
   }
 };
