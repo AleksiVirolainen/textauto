@@ -201,6 +201,7 @@ async function submitBulk() {
 // ---------------- 投放任务（定时加联系人）----------------
 const campaigns = ref([]);
 const campaignLoading = ref(false);
+const campaignSaving = ref(false);
 const campaignDialog = ref(false);
 const campaignForm = ref(emptyCampaign());
 let campaignTimer = null;
@@ -259,6 +260,7 @@ const campaignEtaHours = computed(() => {
 });
 
 async function submitCampaign() {
+  if (campaignSaving.value) return;
   if (campaignPreview.value === 0) {
     ElMessage.warning("没有解析到任何手机号");
     return;
@@ -267,21 +269,29 @@ async function submitCampaign() {
     ElMessage.warning("每小时下限不能大于上限");
     return;
   }
-  await api.createCampaign({
-    username: targetUser.value,
-    title: campaignForm.value.title,
-    ratePerHourMin: Number(campaignForm.value.ratePerHourMin),
-    ratePerHourMax: Number(campaignForm.value.ratePerHourMax),
-    workHourStart: Number(campaignForm.value.workHourStart),
-    workHourEnd: Number(campaignForm.value.workHourEnd),
-    defaultGroupName: campaignForm.value.defaultGroupName,
-    defaultTags: campaignForm.value.defaultTags,
-    defaultOp: campaignForm.value.defaultOp,
-    text: campaignForm.value.text
-  });
-  ElMessage.success(`已创建投放任务（${campaignPreview.value} 条，预计 ${campaignEtaHours.value} 小时跑完）`);
-  campaignDialog.value = false;
-  await refreshCampaigns();
+  campaignSaving.value = true;
+  try {
+    await api.createCampaign({
+      username: targetUser.value,
+      title: campaignForm.value.title,
+      ratePerHourMin: Number(campaignForm.value.ratePerHourMin),
+      ratePerHourMax: Number(campaignForm.value.ratePerHourMax),
+      workHourStart: Number(campaignForm.value.workHourStart),
+      workHourEnd: Number(campaignForm.value.workHourEnd),
+      defaultGroupName: campaignForm.value.defaultGroupName,
+      defaultTags: campaignForm.value.defaultTags,
+      defaultOp: campaignForm.value.defaultOp,
+      text: campaignForm.value.text
+    });
+    ElMessage.success(`已创建投放任务（${campaignPreview.value} 条，预计 ${campaignEtaHours.value} 小时跑完）`);
+    campaignDialog.value = false;
+    await refreshCampaigns();
+  } catch (error) {
+    const message = error?.response?.data?.message || error?.message || "创建投放任务失败";
+    ElMessage.error(Array.isArray(message) ? message.join("；") : message);
+  } finally {
+    campaignSaving.value = false;
+  }
 }
 
 async function pauseCampaign(row) {
@@ -584,8 +594,13 @@ watch(targetUser, refreshAll);
         <b>{{ campaignEtaHours }}</b> 小时跑完（仅在工作时段计费）。
       </div>
       <template #footer>
-        <el-button @click="campaignDialog = false">取消</el-button>
-        <el-button type="primary" :disabled="campaignPreview === 0" @click="submitCampaign">
+        <el-button :disabled="campaignSaving" @click="campaignDialog = false">取消</el-button>
+        <el-button
+          type="primary"
+          :loading="campaignSaving"
+          :disabled="campaignPreview === 0"
+          @click="submitCampaign"
+        >
           创建任务（{{ campaignPreview }} 条）
         </el-button>
       </template>
