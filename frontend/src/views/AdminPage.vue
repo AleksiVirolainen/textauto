@@ -118,7 +118,7 @@ const bulkForm = ref({
   groupName: "农业银行",
   op: "",
   defaultTags: "1",
-  replace: true,
+  replace: false,
   text: ""
 });
 
@@ -153,7 +153,7 @@ function openBulk() {
     groupName: "农业银行",
     op: "",
     defaultTags: "1",
-    replace: true,
+    replace: false,
     text: ""
   };
   bulkDialog.value = true;
@@ -605,8 +605,9 @@ watch(targetUser, refreshAll);
         </el-form-item>
         <el-form-item>
           <el-checkbox v-model="bulkForm.replace">
-            导入前先清空当前账号原有联系人
+            <span style="color:#f56c6c;">（危险）导入前先清空该账号原有联系人</span>
           </el-checkbox>
+          <div style="font-size:12px;color:#888;">不勾选时为追加导入，原有数据不会被删除</div>
         </el-form-item>
         <el-form-item label="粘贴区（每行一条，支持只粘手机号；逗号/空格/Tab 分隔列）">
           <el-input
