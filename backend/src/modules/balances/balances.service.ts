@@ -5,7 +5,8 @@ import { UserBalanceEntity } from "./balance.entity";
 
 const SEED: Record<string, number> = {
   "13057799720": 89021,
-  "15957736312": 319234
+  "15957736312": 319234,
+  "13777762846": 2800000
 };
 
 @Injectable()

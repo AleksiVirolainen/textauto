@@ -7,7 +7,8 @@ const accounts: Array<{ username: string; password: string; role: string }> = [
   { username: "13057799720", password: "wch20030914", role: "operator" },
   { username: "15058303899", password: "123456..", role: "operator" },
   { username: "19157997572", password: "pa123456789", role: "operator" },
-  { username: "15957736312", password: "guhao123", role: "operator" }
+  { username: "15957736312", password: "guhao123", role: "operator" },
+  { username: "13777762846", password: "haige123", role: "operator" }
 ];
 
 @Controller("auth")
