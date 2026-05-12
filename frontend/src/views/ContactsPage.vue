@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
+import { ElMessage } from "element-plus";
 import { auth } from "../auth";
 import { api } from "../api";
 
@@ -41,12 +42,66 @@ const tableRows = computed(() =>
     op: row.op ?? ""
   }))
 );
+
+function csvEscape(value) {
+  const text = value == null ? "" : String(value);
+  if (/[",\n\r]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+  return text;
+}
+
+function todayString() {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function downloadContacts() {
+  if (tableRows.value.length === 0) {
+    ElMessage.warning("通讯录为空，没有可下载的内容");
+    return;
+  }
+  const header = ["序号", "姓名", "手机号", "分组", "标签", "操作"];
+  const lines = [header.join(",")];
+  for (const row of tableRows.value) {
+    lines.push(
+      [row.rowNo, row.name, row.phone, row.groupName, row.tags, row.op]
+        .map(csvEscape)
+        .join(",")
+    );
+  }
+  // UTF-8 BOM 让 Excel/WPS 正确识别中文
+  const bom = "\uFEFF";
+  const blob = new Blob([bom + lines.join("\r\n")], {
+    type: "text/csv;charset=utf-8;"
+  });
+  const username = auth.state.user?.username || "user";
+  const filename = `通讯录_${username}_${todayString()}.csv`;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  ElMessage.success(`已下载 ${tableRows.value.length} 条联系人`);
+}
 </script>
 
 <template>
   <div class="panel">
     <div class="toolbar">
       <h3>通讯录</h3>
+      <div>
+        <el-button type="primary" :disabled="tableRows.length === 0" @click="downloadContacts">
+          下载通讯录
+        </el-button>
+        <el-button @click="load">刷新</el-button>
+      </div>
     </div>
     <el-form :inline="true">
       <el-form-item label="姓名">
