@@ -153,7 +153,18 @@ export class CampaignsService {
   }
 
   private async tickOne(c: CampaignEntity, now: Date) {
-    if (!this.inWorkHours(now, c.workHourStart, c.workHourEnd)) return;
+    if (!this.inWorkHours(now, c.workHourStart, c.workHourEnd)) {
+      // 不在工作时段；如果 nextScheduledAt 已经过期或落在错误窗口，自愈到下一个工作时段开始
+      if (
+        !c.nextScheduledAt ||
+        c.nextScheduledAt.getTime() <= now.getTime() ||
+        !this.inWorkHours(c.nextScheduledAt, c.workHourStart, c.workHourEnd)
+      ) {
+        c.nextScheduledAt = this.nextWorkStart(now, c.workHourStart);
+        await this.campaignRepo.save(c);
+      }
+      return;
+    }
     if (c.nextScheduledAt && c.nextScheduledAt.getTime() > now.getTime()) return;
 
     const item = await this.itemRepo.findOne({

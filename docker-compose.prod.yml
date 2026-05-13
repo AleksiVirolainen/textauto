@@ -23,6 +23,7 @@ services:
       PORT: 3000
       DATABASE_URL: postgres://textauto:${POSTGRES_PASSWORD:-textauto_change_me}@db:5432/textauto
       DB_SSL: "false"
+      TZ: Asia/Shanghai
     depends_on:
       db:
         condition: service_healthy
